@@ -11,7 +11,7 @@ non_drug_sub = pickle.load(open('../data/non_drug_data_filtered_delauthor.pkl', 
 seed = 5
 dat = non_drug_sub.sample(50, random_state = seed)
 del non_drug_sub
-api_key = "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"
+api_key = os.environ['OPENAI_API_KEY']
 client = OpenAI(api_key = api_key)
 ############################################################################################################
 # TASK1 - is the post about drugs or not
