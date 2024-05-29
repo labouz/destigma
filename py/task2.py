@@ -1,21 +1,28 @@
 # the script for labeling a post as containing stigmatizing language or not
 import pandas as pd
 import time
+import openai
 from threading import Lock
 
 rate_limit = 500
+tpm_limit = 160000  # Tokens per minute
+tpd_limit = 10000000  # Tokens per day
 rate_limit_period = 60  # seconds
+retry_wait_time = 5  # seconds between retries
 
 # Global variables for tracking rate limit
 request_count = 0
+token_count = 0
+daily_token_count = 0
 request_lock = Lock()
+token_lock = Lock()
 
 def get_utterance(post, retries = 2, model = "gpt-4-turbo-2024-04-09", openai_client=None):
     prompt = f"""
     *Instructions:*
 
     You are an expert in identifying stigma in social media posts. Your task is to label each post as either S (Stigma) or NS (Non-Stigma).
-    If the post contains stigmatizing language:
+    If the post contains stigmatizing language towards drugs, addiction, or people who use substances, label it as S. If the post does not contain stigmatizing language, label it as NS.:
     1. Extract the utterance (the exact phrase/sentence or the underlying message).
     2. Explain why it's stigmatizing by providing evidence for ALL FOUR of the following components:
 
@@ -43,6 +50,7 @@ def get_utterance(post, retries = 2, model = "gpt-4-turbo-2024-04-09", openai_cl
     *Considerations:*
     * Is the author part of the stigmatized group? Their language may be descriptive or empowering rather than stigmatizing.
     * Stigma is entirely dependent on social, economic, and political power;it takes power to stigmatize. In some instances the role of power is obvious. However, the role of power in stigma is frequently overlooked because in many instances power differences are so taken for granted as to seem unproblematic.
+    * Sometimes stigmatizing language is used but is not towards drugs or drug use. In these cases, it is not considered stigmatizing for this task.
     * If uncertain, err on the side of NS (Non-Stigma).
     """
     example1 = "Once an addict, always an addict. They'll never change."
@@ -69,7 +77,9 @@ def get_utterance(post, retries = 2, model = "gpt-4-turbo-2024-04-09", openai_cl
     answer7 = "NS"
 
 
-    global request_count
+    global request_count, token_count, daily_token_count
+    response_tokens = 0  # Initialize response_tokens before the try block
+
 
     while retries > 0:
         try:
@@ -78,6 +88,15 @@ def get_utterance(post, retries = 2, model = "gpt-4-turbo-2024-04-09", openai_cl
                     print("Rate limit reached. Pausing for a minute...")
                     time.sleep(rate_limit_period)
                     request_count = 0
+            with token_lock:
+                if token_count >= tpm_limit:
+                    print("TPM limit reached. Pausing for a minute...")
+                    time.sleep(rate_limit_period)
+                    token_count = 0
+
+                if daily_token_count >= tpd_limit:
+                    print("TPD limit reached. Stopping processing...")
+                    return "skipped"
 
             response = openai_client.chat.completions.create(
             messages=[
@@ -154,13 +173,21 @@ def get_utterance(post, retries = 2, model = "gpt-4-turbo-2024-04-09", openai_cl
             with request_lock:
                 request_count += 1
 
+            with token_lock:
+                response_tokens += sum([len(prompt), len(response.choices[0].message.content)])
+                token_count += response_tokens
+                daily_token_count += response_tokens
+
             label = response.choices[0].message.content.lower().strip()
             return label
         
+        except openai.RateLimitError as e:
+            print(f"Rate limit error: {e}. Retrying in {retry_wait_time} seconds...")
+            time.sleep(retry_wait_time)
+            retries -= 1
         except Exception as e:
-            if e:
-                print(e)
-                retries -= 1
-                time.sleep(5)
+            print(f"An error occurred: {e}. Retrying...")
+            retries -= 1
+            time.sleep(retry_wait_time)
     print("Retrying...")
     return "skipped"

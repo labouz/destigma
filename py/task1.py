@@ -30,6 +30,8 @@ def get_drug_post(post, retries = 2, model = "gpt-3.5-turbo-0125", openai_client
 
     * Slang terms and euphemisms for drugs are common. Be vigilant in identifying them.
     * Posts that mention drugs in passing or as part of a larger narrative should be classified based on the overall focus of the post.
+    * Do not include alcohol or tobacco in your classification unless they are directly linked to drug use or addiction to drugs.
+    * Respond with either 'D' or 'ND'. Nothing more.
 
     """
     example1 = "I'm so high right now, I can't even feel my face. This is the best weed I've ever smoked."
