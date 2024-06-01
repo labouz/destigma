@@ -4,9 +4,9 @@ import time
 import openai
 from threading import Lock
 
-rate_limit = 500
-tpm_limit = 160000  # Tokens per minute
-tpd_limit = 10000000  # Tokens per day
+rate_limit = 10000
+tpm_limit = 800000  # Tokens per minute
+tpd_limit = 80000000  # Tokens per day
 rate_limit_period = 60  # seconds
 retry_wait_time = 5  # seconds between retries
 
@@ -20,38 +20,30 @@ token_lock = Lock()
 def get_utterance(post, retries = 2, model = "gpt-4-turbo-2024-04-09", openai_client=None):
     prompt = f"""
     *Instructions:*
+    You are an expert in identifying stigma in social media posts, focusing on both personal and systemic levels. Your task is to read each post and determine if it should be labeled as 'S' (Stigma) for depicting stigma or 'NS' (Non-Stigma) if it does not. For posts labeled as 'S', provide a detailed explanation based on the following criteria:
 
-    You are an expert in identifying stigma in social media posts. Your task is to label each post as either S (Stigma) or NS (Non-Stigma).
-    If the post contains stigmatizing language towards drugs, addiction, or people who use substances, label it as S. If the post does not contain stigmatizing language, label it as NS.:
-    1. Extract the utterance (the exact phrase/sentence or the underlying message).
-    2. Explain why it's stigmatizing by providing evidence for ALL FOUR of the following components:
+    1. **Labeling**: Does the post label the author or others based on drug use or addiction? Consider how the author might use stigmatizing language about themselves or others, reflecting internalized societal attitudes.
 
-    * Labeling: Clearly identify how the utterance labels or categorizes a group based on a characteristic.
-    * Stereotyping: Explain the negative or oversimplified generalizations the utterance makes about the labeled group.
-    * Separation: Describe how the utterance creates an "us vs. them" dynamic or suggests exclusion or isolation.
-    * Discrimination: Specify how the utterance implies or encourages unfair treatment or result in loss of status based on the group's characteristic? Does the underlying message perpetuate unequal access to resources, opportunities, or social acceptance?  
+    2. **Stereotyping**: What stereotypes about drug use or addiction does the post reinforce, even if these are self-directed? Discuss how these stereotypes reflect broader societal views that may perpetuate stigma, even if the author is speaking only about themselves.
 
-    *Definition of Stigma:*
-    Stigma is a complex social phenomenon characterized by negative attitudes, beliefs, and behaviors towards individuals or groups based on a perceived characteristic or attribute. It involves the following components:
+    3. **Separation**: How does the post foster a sense of separation between the author and the rest of society or between different groups? Even if the author is describing their own experiences, consider how they might be reinforcing a sense of 'otherness' that aligns with stigmatizing narratives.
 
-    1. Labeling:  Identifying and marking individuals or groups based on a specific characteristic, often reducing them to that single attribute.
-    2. Stereotyping: Assigning negative or inaccurate generalizations to the labeled group, perpetuating harmful assumptions and expectations.
-    3. Separation: Creating a perceived "us vs. them" dynamic, leading to social distancing, exclusion, and isolation of the stigmatized group.
-    4. Discrimination: Unfairly treating the stigmatized group based on negative attitudes and stereotypes, often resulting in unequal access to resources, opportunities, and social acceptance.
-
-    Key Distinctions from Negative Personal Opinions and Rudeness:
-    * Stigma is widespread and systemic, while opinions are individual and isolated.
-    * Stigma generalizes about groups, while opinions are more specific.
-    * Stigma is enduring, while opinions are more fleeting.
-    * Stigma has severe consequences (discrimination, etc.), while opinions are less impactful.
-    * Stigma often intends to devalue, while rudeness might be unintentional.
-    * Stigma involves power imbalances, while rudeness can occur in any interaction.
+    4. **Discrimination**: Does the post suggest any form of discrimination against the author or others based on drug use or addiction? This includes personal reflections that might underscore societal discrimination or internalized negative consequences.
 
     *Considerations:*
-    * Is the author part of the stigmatized group? Their language may be descriptive or empowering rather than stigmatizing.
-    * Stigma is entirely dependent on social, economic, and political power;it takes power to stigmatize. In some instances the role of power is obvious. However, the role of power in stigma is frequently overlooked because in many instances power differences are so taken for granted as to seem unproblematic.
-    * Sometimes stigmatizing language is used but is not towards drugs or drug use. In these cases, it is not considered stigmatizing for this task.
-    * If uncertain, err on the side of NS (Non-Stigma).
+    - Reflect on the author's perspective: Is the author speaking solely about their own experiences, or are they also reflecting societal attitudes that contribute to stigma?
+    - Consider the role of power and its influence on the stigmatization process, particularly how personal narratives can reflect and reinforce societal power dynamics.
+
+    *Definition of Stigma:*
+    Stigma involves negative attitudes, beliefs, and behaviors towards individuals based on perceived characteristics, leading to labeling, stereotyping, separation, and discrimination. This can occur at personal levels (personal stigma) and systemic levels (systemic stigma).
+
+    *Task:*
+    Read the following post and:
+    1. Label it as 'S' (Stigma) if it meets the criteria for stigma, including self-stigmatization, and provide a detailed explanation for each of the four components. 
+    2. Label it as 'NS' (Non-Stigma) if it does not meet these criteria, and no explanation is needed.
+
+    Post: "[Insert the text of the post here]"
+    Response: "Label: [S or NS], Explanation: [Your detailed explanation here if 'S']"
     """
     example1 = "Once an addict, always an addict. They'll never change."
     answer1 = "S, Labeling: Labels individuals with substance use disorder as 'addicts.', Stereotyping: Assumes that people with addiction are incapable of recovery or personal growth, Separation: Creates a sense of hopelessness and perpetuates the idea that people with addiction are fundamentally different, Discrimination: Discourages offering support or opportunities to individuals in recovery due to a belief they'll relapse."
@@ -76,6 +68,11 @@ def get_utterance(post, retries = 2, model = "gpt-4-turbo-2024-04-09", openai_cl
     example7 = "I'm concerned about my brother's substance use. I'm learning about available resources to help him."
     answer7 = "NS"
 
+    # self and systemic
+    example8 = "I always hide my medication because I feel ashamed of my condition. I'm just an addict, and that's all people will see if they know."
+    answer8 = "S, The author internalizes the negative stereotype associated with addiction, labeling themselves pejoratively as 'just an addict.' This self-labeling reinforces personal shame and societal stereotypes, contributing to a separation from others who might not understand or who might judge based on this one aspect of their identity."
+    example9 = "Our town's only rehab facility refuses to accept people who have been arrested for drug offenses. They say it's a policy to maintain safety, but it just prevents those who need help the most from getting it."
+    answer9 = "S, This post describes a systemic policy that discriminates against individuals with drug offenses, reinforcing stereotypes that they are dangerous. The policy creates a separation by denying these individuals access to rehabilitation, which is crucial for their recovery and reintegration into society."
 
     global request_count, token_count, daily_token_count
     response_tokens = 0  # Initialize response_tokens before the try block
@@ -90,6 +87,7 @@ def get_utterance(post, retries = 2, model = "gpt-4-turbo-2024-04-09", openai_cl
                     request_count = 0
             with token_lock:
                 if token_count >= tpm_limit:
+                    print(token_count)
                     print("TPM limit reached. Pausing for a minute...")
                     time.sleep(rate_limit_period)
                     token_count = 0
@@ -160,6 +158,22 @@ def get_utterance(post, retries = 2, model = "gpt-4-turbo-2024-04-09", openai_cl
                 {
                     "role": "system",
                     "content": answer7
+                },
+                {
+                    "role": "user",
+                    "content": example8
+                },
+                {
+                    "role": "system",
+                    "content": answer8
+                },
+                {
+                    "role": "user",
+                    "content": example9
+                },
+                {
+                    "role": "system",
+                    "content": answer9
                 },
                 {
                     "role": "user",
