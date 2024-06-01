@@ -163,3 +163,6 @@ data/
 lit/
 .DS_Store
 py/dev
+
+py/export_dat.ipynb
+py/run_task2.ipynb

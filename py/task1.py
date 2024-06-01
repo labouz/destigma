@@ -18,23 +18,67 @@ token_lock = Lock()
 def get_drug_post(post, retries = 2, model = None, openai_client=None):
 # prompt
     prompt = f"""
-    Instructions:
+    *Instructions for Labeling Drug References in Social Media Posts*
 
-    1. Carefully read the entire post, paying attention to both explicit mentions and subtle allusions to drug-related topics.
-    2. Consider the context when evaluating the post.
-    3. Consider illicit drugs, prescription drugs, and other substances that may be abused. Do not include tobacco, nicotine, or alcohol. 
-    4. Categorize the post into ONE of the following classes:
-        * D: The post is about drugs, people who use drugs, or contains a mention of drugs. 
-        * ND: The post is not about drugs, people who use drugs, or contains no mention of drugs. 
+    1. **Objective**: Identify references to drugs or people who use drugs in each post.
 
-    Additional Notes:
+    2. **Include**:
+    - Illicit Drugs: All controlled substances with no legal usage.
+    - Prescription Drugs: Only include if abused.
+    - Other Substances: Inhalants, synthetic compounds (e.g., bath salts, spice, K2).
+    - Explicit mentions of drug use, abuse, or addiction related terms (e.g., "getting high", "stoned").
 
-    * Slang terms and euphemisms for drugs are common. Be vigilant in identifying them.
-    * Posts that mention being "stoned" or "high" should also be labeled as 'D'. 
-    * Do not include alcohol or tobacco in your classification unless they are directly linked to drug use or addiction to drugs.
-    * Respond with either 'D' or 'ND'. Nothing more.
+    3. **Exclude**:
+    - Tobacco, nicotine, or alcohol unless explicitly linked to other drug use or addiction.
+    - Do not include medical or psychological discussions unless there is a direct and clear mention of drug use or abuse.
 
+    4. **Clarifications**:
+    - Mental health discussions should not be labeled as 'D' unless there is an explicit mention of drugs as defined above.
+    - Use 'ND' for posts that discuss health or psychological issues without specific drug references.
+
+    5. **Language Cues**:
+    - Focus on clear drug-related terminology (e.g., "junkie", "addict") and slang.
+    - If a post is ambiguous and does not clearly fit the drug reference criteria, label as 'ND'.
+
+    6. **Response Requirement**:
+    - Respond with either 'D' (Drug) or 'ND' (Non-Drug) based on these guidelines. No additional commentary is needed.
     """
+#     prompt = f"""
+#     *Instructions for Labeling Drug References in Social Media Posts*
+
+#     1. **Task Overview**: You are tasked with identifying any references to drugs or people who use drugs within each post. 
+
+#     2. **Substances Included**:
+#     - **Illicit Drugs**: Consider all controlled substances with no legal usage.
+#     - **Prescription Drugs**: Include drugs that are often abused even if they have legitimate medical uses.
+#     - **Other Substances**: Include any non-prescription substances known to be abused (e.g., inhalants, synthetic compounds).
+#     - **Exclude**: Do not consider tobacco, nicotine, or alcohol unless explicitly linked to drug use or addiction.
+
+#     3. **Drug Classes**:
+#     - **Narcotics**, **Stimulants**, **Depressants**, **Hallucinogens**
+#     - **Cannabis**, **Drugs of Concern** (e.g., DXM, fake pills, kratom)
+#     - **Designer Drugs** (e.g., bath salts, spice, K2)
+#     - **Treatment Substances**: Include methadone and other synthetic opiates used in treatment contexts.
+
+#     4. **Language Cues**:
+#     - Pay attention to slang and euphemisms for drugs.
+#     - Phrases indicating drug use effects, such as "stoned" or "high", should lead to a 'D' label.
+#     - The use of names referring to people who use drugs (e.g., junkie, addict) should also be considered as 'D'.
+#     - Be cautious with ambiguous references; if in doubt, label as 'ND'.
+
+#     5. **Classification**:
+#     - **D**: Label the post as 'D' if it discusses drugs, drug use, or people who use drugs, including any of the aforementioned substances and contexts.
+#     - **ND**: Label the post as 'ND' if it does not discuss drugs or drug use, and contains no references to the substances outlined above.
+
+#     6. *Clarification on Psychological References*:
+#     - Do not automatically classify posts as 'D' when they mention medical or psychological assessments, doctors, or treatments, unless there is a direct reference to drug use or medications known to be abused.
+#     - Be cautious with posts discussing mental health issues; label as 'D' only if there are explicit mentions of substances covered under the drug categories specified in the instructions.
+#     - Do not assume that mental health discussions imply drug use.
+    
+#    7.  *Response Requirement*:
+#     - Respond with a single label per post: either 'D' or 'ND'. Nothing more.
+
+#     """
     example1 = "I'm so high right now, I can't even feel my face. This is the best weed I've ever smoked."
     answer1 = "D"
     example2 = "I hope my junkie sister OD's or disappears out of our lives My sister is an alcoholic junkie who has 2 DUIs under her belt as well as loves taking Xanax and alcohol together and wreaking havoc for our family and even strangers."
@@ -47,10 +91,12 @@ def get_drug_post(post, retries = 2, model = None, openai_client=None):
     answer5 = "ND"
     example6 = "My mother died two years ago from cancer of basically all of her internal organs starting in the colon and then liver and spleen and just everywhere. I hadn't seen her in years because she struggled with drug addiction since I was about four or five. We had years together but not enough. I was there the day she died and I wouldn't wish anyone to go through what she did or what our family did when we saw her in that state. My father also had an addiction to pain pills and alcohol. My last few years of high school were ruined because of that. I watched him overdoes on thanksgiving. I watched him try to kill himself with his own hand gun more than once. I watched him aim it at my stepmom when she tried to take it from him. I heard him yell at me while he kicked me and told me that he didn't want me anymore and tried to drag me up the stairs. Maybe these are some of the reasons I drink. Maybe because I barely have a relationship with my dad now and he still hasn't said anything to me today."
     answer6 = "D"
-    example7 = "Hate my new job I just got hired at Taco Bell a few weeks ago and I really hate it. The only thing that‚Äôs gets me through it is smoking weed. I wonder if i should just quit or no call no show?"
+    example7 = "Hate my new job I just got hired at Taco Bell a few weeks ago and I really hate it. The only thing that's gets me through it is smoking weed. I wonder if i should just quit or no call no show?"
     answer7 = "D"
     example8 = "I'm trying not to get emotionally invested again in you because I know all to well how you are. You're an alcoholic and I know there is nothing I can do to save you. It kills me to see you drink like you do but I know how it is, you have to want to stop. As much as I love fucking you and being around you, It's not a good idea to continue being around you. "
     answer8 = "ND"
+    example9 = "Recently I took a psychological exam for work. To know if I'm fit to work.The doctor looked at my paper and asked 'Do your have urges to hurt/killpeople?' I laughed in my head and lied.."
+    answer9 = "ND"
 
     global request_count, token_count
 
@@ -139,6 +185,14 @@ def get_drug_post(post, retries = 2, model = None, openai_client=None):
                 {
                     "role": "system",
                     "content": answer8
+                },
+                {
+                    "role": "user",
+                    "content": example9
+                },
+                {
+                    "role": "system",
+                    "content": answer9
                 },
                 {
                     "role": "user",
