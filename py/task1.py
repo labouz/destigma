@@ -23,13 +23,13 @@ def get_drug_post(post, retries = 2, model = None, openai_client=None):
     1. **Objective**: Identify references to drugs or people who use drugs in each post.
 
     2. **Include**:
-    - Illicit Drugs: All controlled substances with no legal usage.
-    - Prescription Drugs: Only include if abused.
-    - Other Substances: Inhalants, synthetic compounds (e.g., bath salts, spice, K2).
+    - Illicit Drugs: All controlled substances with no legal usage (e.g. cannabis, heroin, cocaine, methamphetamine)
+    - Prescription Drugs: drugs that are often abused even if they have legitimate medical uses (e.g., opioids, benzodiazepines).
+    - Other Drugs: drugs that are non-prescription and known to be abused (e.g., inhalants, k2, bath salts).
     - Explicit mentions of drug use, abuse, or addiction related terms (e.g., "getting high", "stoned").
 
     3. **Exclude**:
-    - Tobacco, nicotine, or alcohol unless explicitly linked to other drug use or addiction.
+    - Tobacco, nicotine, or alcohol unless explicitly linked to drug use.
     - Do not include medical or psychological discussions unless there is a direct and clear mention of drug use or abuse.
 
     4. **Clarifications**:
