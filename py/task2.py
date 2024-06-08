@@ -19,43 +19,49 @@ token_lock = Lock()
 
 def get_utterance(post, retries = 2, model = "gpt-4-turbo-2024-04-09", openai_client=None):
     prompt = f"""
-    *Instructions:*
-    You are an expert in identifying stigma in social media posts, focusing on both personal and systemic levels. Your task is to read each post and determine if it should be labeled as 'S' (Stigma) for depicting stigma or 'NS' (Non-Stigma) if it does not. For posts labeled as 'S', provide a detailed explanation based on the following criteria:
+    **Instructions:**
+    You are an expert in identifying stigma related to drug use and addiction in social media posts. Your task is to analyze each post and determine if it contains stigmatizing language. 
 
-    1. **Labeling**: Does the post label the author or others based on drug use or addiction? Consider how the author might use stigmatizing language about themselves or others, reflecting internalized societal attitudes.
+    1. **Label:**
+        * If the post contains stigmatizing language, label it as **"S" (Stigma)**.
+        * If the post does not contain stigmatizing language, label it as **"NS" (Non-Stigma)**.
 
-    2. **Stereotyping**: What stereotypes about drug use or addiction does the post reinforce, even if these are self-directed? Discuss how these stereotypes reflect broader societal views that may perpetuate stigma, even if the author is speaking only about themselves.
+    2. **Explanation:**
+        * **For "S" (Stigma) labels:**
+            * If the post demonstrates **stigmatizing language (directed at others)**, analyze it based on the following four attributes and provide an explanation for each attribute:
+                * **Labeling:** Does the post use derogatory or othering language related to drug use/addiction?
+                * **Stereotyping:** Does the post reinforce negative generalizations about people who use drugs?
+                * **Separation:** Does the post create a divide between people who use drugs and those who don't?
+                * **Discrimination:** Does the post imply or suggest unfair treatment based on drug use?
+            * If the post demonstrates **self-stigma or structural stigma**, provide a brief, one-sentence explanation of the type of stigma present.
 
-    3. **Separation**: How does the post foster a sense of separation between the author and the rest of society or between different groups? Even if the author is describing their own experiences, consider how they might be reinforcing a sense of 'otherness' that aligns with stigmatizing narratives.
+        * **For "NS" (Non-Stigma) labels:** No explanation is needed.
 
-    4. **Discrimination**: Does the post suggest any form of discrimination against the author or others based on drug use or addiction? This includes personal reflections that might underscore societal discrimination or internalized negative consequences.
+    **Definitions:**
 
-    *Considerations:*
-    - Reflect on the author's perspective: Is the author speaking solely about their own experiences, or are they also reflecting societal attitudes that contribute to stigma?
-    - Consider the role of power and its influence on the stigmatization process, particularly how personal narratives can reflect and reinforce societal power dynamics.
+    * **Stigma:** Negative attitudes or beliefs directed at individuals based on their drug use.
+    * **Self-Stigma:** Internalization of negative societal attitudes about drug use.
+    * **Structural Stigma:** Societal systems, policies, or practices that disadvantage people who use drugs.
 
-    *Definition of Stigma:*
-    Stigma involves negative attitudes, beliefs, and behaviors towards individuals based on perceived characteristics, leading to labeling, stereotyping, separation, and discrimination. This can occur at personal levels (personal stigma) and systemic levels (systemic stigma).
+    **Additional Considerations:**
 
-    *Task:*
-    Read the following post and:
-    1. Label it as 'S' (Stigma) if it meets the criteria for stigma, including self-stigmatization, and provide a detailed explanation for each of the four components. 
-    2. Label it as 'NS' (Non-Stigma) if it does not meet these criteria, and no explanation is needed.
+    * Consider the context of the post and the author's intent.
+    * Focus on language that is harmful, discriminatory, or perpetuates negative stereotypes.
 
-    Post: "[Insert the text of the post here]"
-    Response: "Label: [S or NS], Explanation: [Your detailed explanation here if 'S']"
+    **Task:**
+    Read the following post, label it as "S" or "NS", and provide the appropriate explanation:
     """
     example1 = "Once an addict, always an addict. They'll never change."
-    answer1 = "S, Labeling: Labels individuals with substance use disorder as 'addicts.', Stereotyping: Assumes that people with addiction are incapable of recovery or personal growth, Separation: Creates a sense of hopelessness and perpetuates the idea that people with addiction are fundamentally different, Discrimination: Discourages offering support or opportunities to individuals in recovery due to a belief they'll relapse."
+    answer1 = "S, Labeling: 'addict', Stereotyping: Assumes that people with addiction are incapable of recovery or personal growth, Separation: Creates a sense of hopelessness and perpetuates the idea that people with addiction are fundamentally different, Discrimination: Discourages offering support or opportunities to individuals in recovery due to a belief they'll relapse."
 
     example2 = "He's just a junkie looking for his next fix."
-    answer2 = "S, Labeling: Labels the individual as a 'junkie', a derogatory term, Stereotyping: Reduces the person's identity to their substance use, ignoring other aspects of their life, Separation: Creates a distance between 'us' (non-users) and 'them' (people who use substances), Discrimination: Implies the person is solely motivated by drug use and lacks other values or goals."
+    answer2 = "S, Labeling: 'junkie', a derogatory term, Stereotyping: Reduces the person's identity to their substance use, ignoring other aspects of their life, Separation: Creates a distance between 'us' (non-users) and 'them' (people who use substances), Discrimination: Implies the person is solely motivated by drug use and lacks other values or goals."
 
     example3 = "She's constantly nodding off at work. Probably using again."
     answer3 = "S, Labeling: Implies the person has a substance use disorder by suggesting they are 'using again,' Stereotyping: Generalizes that the person's behavior (nodding off) is solely due to drug use, Separation: Creates a distinction between the person and their colleagues, implying they are unreliable or irresponsible due to assumed substance use, Discrimination: Could lead to unfair treatment at work based on an assumption of relapse."
 
     example4 = "If you hang out with those druggies, you'll end up like them."
-    answer4 = "S, Labeling: Uses the derogatory term 'druggies', Stereotyping: Generalizes that all people who use drugs are bad influences and will lead others to the same behavior, Separation: Creates a clear division between 'us' (those who don't use drugs) and 'them' (those who do), Discrimination: Promotes exclusion and fear of people who use drugs, potentially leading to social isolation."
+    answer4 = "S, Labeling: 'druggies', Stereotyping: Generalizes that all people who use drugs are bad influences and will lead others to the same behavior, Separation: Creates a clear division between 'us' (those who don't use drugs) and 'them' (those who do), Discrimination: Promotes exclusion and fear of people who use drugs, potentially leading to social isolation."
 
     # Non-Stigmatizing Examples
 
@@ -70,9 +76,11 @@ def get_utterance(post, retries = 2, model = "gpt-4-turbo-2024-04-09", openai_cl
 
     # self and systemic
     example8 = "I always hide my medication because I feel ashamed of my condition. I'm just an addict, and that's all people will see if they know."
-    answer8 = "S, The author internalizes the negative stereotype associated with addiction, labeling themselves pejoratively as 'just an addict.' This self-labeling reinforces personal shame and societal stereotypes, contributing to a separation from others who might not understand or who might judge based on this one aspect of their identity."
+    answer8 = "S, The author internalizes the negative stereotype associated with addiction, labeling themselves pejoratively as 'just an addict.'"
     example9 = "Our town's only rehab facility refuses to accept people who have been arrested for drug offenses. They say it's a policy to maintain safety, but it just prevents those who need help the most from getting it."
-    answer9 = "S, This post describes a systemic policy that discriminates against individuals with drug offenses, reinforcing stereotypes that they are dangerous. The policy creates a separation by denying these individuals access to rehabilitation, which is crucial for their recovery and reintegration into society."
+    answer9 = "S, This post describes a systemic policy that discriminates against individuals with drug offenses, reinforcing stereotypes that they are dangerous. The policy creates a separation by denying these individuals access to rehabilitation."
+    example10 = "Crack is a better alternative to coffee All coffee does is make you feel less drowsy. When I smoke a bowl of crack in the morning, shit gets me gooooinn, makes me go absolutely bonkers, crazy ridiculous out of the world bonkers ! I'm getting the jitters just thinkin about it"
+    answer10 = "NS"
 
     global request_count, token_count, daily_token_count
     response_tokens = 0  # Initialize response_tokens before the try block
@@ -174,6 +182,14 @@ def get_utterance(post, retries = 2, model = "gpt-4-turbo-2024-04-09", openai_cl
                 {
                     "role": "system",
                     "content": answer9
+                },
+                {
+                    "role": "user",
+                    "content": example10
+                },
+                {
+                    "role": "system",
+                    "content": answer10
                 },
                 {
                     "role": "user",
