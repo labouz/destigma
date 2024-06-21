@@ -5,7 +5,7 @@ def process_posts_in_parallel(posts, max_workers=10,model=None, task= None, clie
     openai_client = client
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_index = {executor.submit(task, post, model = model, openai_client=openai_client): idx for idx, post in enumerate(posts)}
+        future_to_index = {executor.submit(task, post, model = model, openai_client=openai_client, kwargs=None): idx for idx, post in enumerate(posts)}
         for future in concurrent.futures.as_completed(future_to_index):
             idx = future_to_index[future]
             try:
