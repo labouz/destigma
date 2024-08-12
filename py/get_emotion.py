@@ -11,7 +11,7 @@ Only one emotion should be provided.
 def get_emotion(text, client, model="gpt-4-turbo-2024-04-09", temperature=0, retries = 2):
     while retries > 0:
         try:
-            response = client.completions.create(
+            response = client.chat.completions.create(
                 messages=[
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": text}
@@ -19,11 +19,12 @@ def get_emotion(text, client, model="gpt-4-turbo-2024-04-09", temperature=0, ret
                 temperature=temperature,
                 model=model
             )
-            return response.choices[0].text
+            label = response.choices[0].message.content.lower().strip()
+            return label
         except Exception as e:
             retries -= 1
             print(f"Error: {e}")
             print(f"Retries left: {retries}")
-        return None
-    label = response.choices[0].message.content.lower().strip()
-    return label
+            print("Retrying...")
+            return "skipped"
+    

@@ -9,12 +9,12 @@ from get_emotion import get_emotion
 # openai client
 import json
 import openai
-with open('../data/secrets.json') as f:
-    secrets = json.load(f)
+# with open('../data/secrets.json') as f:
+#     secrets = json.load(f)
 
-api_key = secrets['OPENAI_API_KEY_SR']
+# api_key = secrets['OPENAI_API_KEY_SR']
 
-client = openai.Client(api_key=api_key)
+# client = openai.Client(api_key=api_key)
 
 # Load the GoEmotion model and tokenizer
 # tokenizer = AutoTokenizer.from_pretrained("SamLowe/roberta-base-go_emotions", model_max_length=512, padding=True, truncation=True)
@@ -30,8 +30,6 @@ client = openai.Client(api_key=api_key)
 #     results = classifier(text)
 #     sorted_results = sorted(results[0], key=lambda x: x['score'], reverse=True)[:3]
 #     return sorted_results
-
-client = openai.Client()
 
 def mtld_LD(word_list):
     def mtld_calc(words, ttr_threshold=0.72):
@@ -55,7 +53,7 @@ def mtld_LD(word_list):
     return (length_fwd + length_bwd) / 2
 
 # Modified analyze_text_llm function
-def analyze_text_llm(text):
+def analyze_text_llm(text, client):
     # Tokenize sentences and words
     sentences = sent_tokenize(text)
     # words = word_tokenize(text)
