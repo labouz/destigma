@@ -18,5 +18,7 @@ This repository contains the code and notebooks for our study on reducing stigma
 
 ## Paper
 
+Layla Bouzoubaa, Elham Aghakhani, and Rezvaneh Rezapour. 2024. [Words Matter: Reducing Stigma in Online Conversations about Substance Use with Large Language Models](https://aclanthology.org/2024.emnlp-main.516/). In Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing, pages 9139–9156, Miami, Florida, USA. Association for Computational Linguistics.
+
 ## Contact
 For questions regarding paper or data, please contact [lb3338] at [drexel.edu]
